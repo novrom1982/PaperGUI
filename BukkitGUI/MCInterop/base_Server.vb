@@ -58,7 +58,7 @@ Namespace MCInterop
             Me.custom_switch = ""
         End Sub
 
-        Public Sub New(jre As javaAPI.javaVersion, minram As UInt32, maxram As UInt32, jar As String,
+        Public Sub New(jre As Object, minram As UInt32, maxram As UInt32, jar As String,
                        Optional ByVal CustomArgs As String = "", Optional ByVal CustomSwitches As String = "",
                        Optional ByVal server As server.McInteropType = server.McInteropType.paper)
             If minram < 16 Then minram = 16
