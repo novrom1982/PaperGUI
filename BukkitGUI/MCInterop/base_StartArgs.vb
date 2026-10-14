@@ -70,12 +70,32 @@ Namespace MCInterop
             If maxram < 16 Then maxram = 16
 
             Me.executable = GetExec(jre)
+            
+            ' Для Paper и флагов Aikar's критически важно, чтобы Xms был равен Xmx
+            If server = McInteropType.paper Then
+                minram = maxram
+            End If
+
             Me.args = "-Xms" & minram & "M -Xmx" & maxram & "M "
             Me.jar = jar
             Me.custom_arg = CustomArgs
             Me.custom_switch = CustomSwitches
 
             Select Case server
+                Case McInteropType.paper
+                    ' Флаги оптимизации Aikar's Flags для Paper
+                    Me.args += "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 " &
+                               "-XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch " &
+                               "-XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8m " &
+                               "-XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 " &
+                               "-XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 " &
+                               "-XX:SurvivingRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 " &
+                               "-Dusing.aikars.flags=https://emc.gs -Daikars.new.flags=true "
+                    
+                    ' Отключаем ANSI-цвета и JLine, чтобы GUI корректно читал лог
+                    Me.args += "-Dterminal.jline=false -Dterminal.ansi=false -Duser.language=en "
+                    Me.switches = "nogui"
+
                 Case McInteropType.bukkit
                     Me.switches = "-nojline"
                     Me.args += " -Duser.language=en "
@@ -84,13 +104,12 @@ Namespace MCInterop
 
                 Case McInteropType.vanilla
                     Me.switches = "nogui"
+
                 Case McInteropType.spigot
                     Me.switches = "-nojline"
                     Me.args += " -Duser.language=en "
                     If readAsBool("utf_8_compatibility", False, "output") Then _
                         Me.args += " -Dfile.encoding=utf-8 "
-
-
             End Select
         End Sub
 
