@@ -116,7 +116,7 @@ Namespace Core
             AddHandler ServerStopped, AddressOf hdn_server_stop
             AddHandler ServerStarting, AddressOf hnd_server_starting
         End Sub
-
+#End Region
 #Region "Server management"
 
         Private Sub toggle_server() Handles BtnGeneralStartStop.Click
