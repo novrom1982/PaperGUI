@@ -3281,7 +3281,7 @@ Namespace Core
             Me.lblInfo2.Name = "lblInfo2"
             Me.lblInfo2.Size = New System.Drawing.Size(227, 13)
             Me.lblInfo2.TabIndex = 6
-            Me.lblInfo2.Text = Lr("PaperGUI 2026 v.1.0")
+            Me.lblInfo2.Text = Lr("BukkitGui v2 is available! visit get.bertware.net")
             '
             'Mainform
             '
