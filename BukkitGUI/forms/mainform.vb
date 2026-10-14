@@ -1,4 +1,4 @@
-﻿'============================================='''
+'============================================='''
 '
 ' This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 ' If a copy of the MPL was not distributed with this file,
@@ -1488,32 +1488,80 @@ KeyUp
                         lblGeneralCPUServerValue.Text = ServerCpu.ToString.PadLeft(2, "0") & "%"
                     End If
 
-                    If GuiMem >= 0 Then
-                        If GuiMem <= 100 Then PBGeneralRAMGUI.Value = GuiMem
-                        If TotalMem <= 100 Then PBGeneralRAMTotal.Value = TotalMem
-                        If ServerMem <= 100 Then PBGeneralRAMServer.Value = ServerMem
-                        lblGeneralRAMGUIValue.Text = GuiMem.ToString.PadLeft(3) & "% [" &
-                                                     GuiMemMbytes & "MB]"
-                        lblGeneralRAMServerValue.Text = ServerMem.ToString.PadLeft(3) & "% [" &
-                                                        ServerMemMbytes & "MB]"
-                        lblGeneralRAMTotalValue.Text = TotalMem.ToString.PadLeft(3) & "% [" &
-                                                       TotalMemMbytes & "MB]"
-                    Else
-                        If _hndTmrUpdateStatsRamerror = False Then
-                            lblGeneralRAMGUIValue.Text = Lr("Unknown")
-                            lblGeneralRAMServerValue.Text = Lr("Unknown")
-                            lblGeneralRAMTotalValue.Text = Lr("Unknown")
-                        Else
-                            _hndTmrUpdateStatsRamerror = True
-                        End If
+                    ' --- НАЧАЛО ПОЛНОГО ПОВЕРХНОСТНОГО ИСПРАВЛЕНИЯ ВСЕХ ШКАЛ RAM ---
+                    Try
+                        ' 1. РАСЧЕТ ДЛЯ GUI (САМА ПРОГРАММА) В 64-БИТНОМ РЕЖИМЕ
+                        Dim currentCopy = Process.GetCurrentProcess()
+                        Dim guiBytes As Long = currentCopy.WorkingSet64
+                        Dim guiMb As Long = guiBytes \ (1024 * 1024)
 
-                    End If
+                        ' Общий объем физической памяти ПК для расчета процентов
+                        Dim totalPhysicalBytes As Long = My.Computer.Info.TotalPhysicalMemory
+                        Dim totalPhysicalMb As Long = totalPhysicalBytes \ (1024 * 1024)
+                        If totalPhysicalMb <= 0 Then totalPhysicalMb = 4096 ' Защита
+
+                        Dim guiPercent As Integer = CInt((guiMb * 100) \ totalPhysicalMb)
+                        If guiPercent > 100 Then guiPercent = 100
+                        If guiPercent < 0 Then guiPercent = 0
+
+                        PBGeneralRAMGUI.Value = guiPercent
+                        lblGeneralRAMGUIValue.Text = guiPercent.ToString().PadLeft(3) & "% [" & guiMb & "MB]"
+
+
+                        ' 2. РАСЧЕТ ДЛЯ СЕРВЕРА (ПРОЦЕСС JAVA)
+                        If host IsNot Nothing AndAlso Not host.HasExited Then
+                            host.Refresh()
+                            Dim serverBytes As Long = host.WorkingSet64
+                            Dim serverMb As Long = serverBytes \ (1024 * 1024)
+
+                            Dim maxServerMb As Long = TBSuperstartJavaMaxRam.Value
+                            If maxServerMb <= 0 Then maxServerMb = 1024
+
+                            Dim serverPercent As Integer = CInt((serverMb * 100) \ maxServerMb)
+                            If serverPercent > 100 Then serverPercent = 100
+                            If serverPercent < 0 Then serverPercent = 0
+
+                            PBGeneralRAMServer.Value = serverPercent
+                            lblGeneralRAMServerValue.Text = serverPercent.ToString().PadLeft(3) & "% [" & serverMb & "MB]"
+
+                            ' 3. РАСЧЕТ ОБЩЕЙ ПАМЯТИ ВСЕЙ МАШИНЫ (TOTAL RAM)
+                            ' Получаем занятую память ПК: Всего минус Свободно
+                            Dim availableBytes As Long = My.Computer.Info.AvailablePhysicalMemory
+                            Dim usedMachineMb As Long = (totalPhysicalBytes - availableBytes) \ (1024 * 1024)
+
+                            Dim totalPercent As Integer = CInt((usedMachineMb * 100) \ totalPhysicalMb)
+                            If totalPercent > 100 Then totalPercent = 100
+                            If totalPercent < 0 Then totalPercent = 0
+
+                            PBGeneralRAMTotal.Value = totalPercent
+                            lblGeneralRAMTotalValue.Text = totalPercent.ToString().PadLeft(3) & "% [" & usedMachineMb & "MB]"
+                        Else
+                            ' Если сервер остановлен, сбрасываем шкалы сервера и общей нагрузки на базовые системные значения
+                            PBGeneralRAMServer.Value = 0
+                            lblGeneralRAMServerValue.Text = "0% [0MB]"
+
+                            Dim availableBytes As Long = My.Computer.Info.AvailablePhysicalMemory
+                            Dim usedMachineMb As Long = (totalPhysicalBytes - availableBytes) \ (1024 * 1024)
+                            Dim totalPercent As Integer = CInt((usedMachineMb * 100) \ totalPhysicalMb)
+
+                            PBGeneralRAMTotal.Value = totalPercent
+                            lblGeneralRAMTotalValue.Text = totalPercent.ToString().PadLeft(3) & "% [" & usedMachineMb & "MB]"
+                        End If
+                    Catch ex As Exception
+                        ' Подстраховка в случае системной ошибки чтения счетчиков ОС
+                        lblGeneralRAMGUIValue.Text = "Error"
+                        lblGeneralRAMServerValue.Text = "Error"
+                        lblGeneralRAMTotalValue.Text = "Error"
+                    End Try
+                    ' --- КОНЕЦ ПОЛНОГО ПОВЕРХНОСТНОГО ИСПРАВЛЕНИЯ ВСЕХ ШКАЛ RAM ---
 
                 End If
             Catch ex As Exception
                 Log(loggingLevel.Severe, "mainform", "Severe exception at hnd_tmr_update_stats!", ex.Message)
             End Try
         End Sub
+
+
 
 #End Region
 
