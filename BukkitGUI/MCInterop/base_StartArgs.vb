@@ -29,7 +29,7 @@ Namespace MCInterop
         ''' Создает новый экземпляр аргументов запуска, по умолчанию настроенный под Paper
         ''' </summary>
         Public Sub New()
-            Me.Jre = javaAPI.javaVersion.java7 ' Примечание: в настройках GUI пользователя должна быть выбрана актуальная Java (17/21)
+            Me.Jre = Nothing ' Примечание: в настройках GUI пользователя должна быть выбрана актуальная Java (17/21)
             Me.MinRam = 1024
             Me.MaxRam = 2048
             Me.JarPath = "paper.jar"
