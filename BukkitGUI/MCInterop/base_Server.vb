@@ -60,12 +60,12 @@ Namespace MCInterop
 
         Public Sub New(jre As Object, minram As UInt32, maxram As UInt32, jar As String,
                        Optional ByVal CustomArgs As String = "", Optional ByVal CustomSwitches As String = "",
-                       Optional ByVal server As server.McInteropType = server.McInteropType.paper)
+                       Optional ByVal server As McInteropType = McInteropType.paper)
             If minram < 16 Then minram = 16
             If maxram < 16 Then maxram = 16
 
             Me.executable = GetExec(jre)
-            
+
             ' Для Paper и флагов Aikar's критически важно, чтобы Xms был равен Xmx
             If server = server.McInteropType.paper Then
                 minram = maxram
@@ -86,7 +86,7 @@ Namespace MCInterop
                                "-XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 " &
                                "-XX:SurvivingRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 " &
                                "-Dusing.aikars.flags=https://emc.gs -Daikars.new.flags=true "
-                    
+
                     ' Отключаем ANSI-цвета и JLine, чтобы GUI корректно читал лог
                     Me.args += "-Dterminal.jline=false -Dterminal.ansi=false -Duser.language=en "
                     Me.switches = "nogui"
@@ -243,8 +243,8 @@ Namespace MCInterop
                 If Jsa.executable Is Nothing OrElse Jsa.executable = "" OrElse Not Jsa.executable.EndsWith(".exe") OrElse
                     FileSystem.FileExists(Jsa.executable) = False Then
                     MessageBox.Show(
-                        lr("The java path could not be found, server start aborted") & vbCrLf &
-                        lr("Please select the correct java version in the superstart tab"), lr("Could not start server"),
+                        Lr("The java path could not be found, server start aborted") & vbCrLf &
+                        Lr("Please select the correct java version in the superstart tab"), Lr("Could not start server"),
                         MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Log(loggingLevel.Warning, "Server", "File not found, server start cancelled:" & Jsa.executable)
                     Return 0
@@ -268,8 +268,8 @@ Namespace MCInterop
                 End With
 
                 Log(loggingLevel.Fine, "Server", "Starting process")
-                If p.StartInfo.FileName IsNot Nothing Then 
-                    p.Start() 
+                If p.StartInfo.FileName IsNot Nothing Then
+                    p.Start()
                 Else
                     MessageBox.Show(Lr("Could not start the process - no executable given"),
                                     Lr("Could not start server"), MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -280,8 +280,9 @@ Namespace MCInterop
                 ServerStart_Common()
                 Log(loggingLevel.Fine, "Server", "Paper server started successfully")
                 RaiseEvent ServerStarted()
-                
-                If p IsNot Both AndAlso p.Id > 0 Then Return (p.Id) Else Return 0
+
+                If p IsNot Nothing AndAlso p.Id > 0 Then
+                    Return (p.Id) Else Return 0
             Catch winex As Win32Exception
                 MessageBox.Show(Lr("The server could not be started. Try running the GUI as administrator"), Lr("File I/O error"), MessageBoxButtons.OK, MessageBoxIcon.Error)
                 Log(loggingLevel.Warning, "Server", "Security error in Startserver (java)! " & winex.Message)
@@ -388,7 +389,7 @@ Namespace MCInterop
             Log(loggingLevel.Info, "server", "StopServer() was called")
             RaiseEvent ServerStopping()
             ' Даем современному Paper время на асинхронное сохранение мира и чанков
-            Thread.Sleep(500) 
+            Thread.Sleep(500)
             If CurrentServerType = McInteropType.remote Then
                 _ServerStopped()
             Else
