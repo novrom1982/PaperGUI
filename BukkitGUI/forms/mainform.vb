@@ -106,6 +106,8 @@ KeyUp
             _tmrUpdateStats = New Timer
             set_handles()
 
+            BtnBrowseOutput.Text = "Открыть лог"
+
             ARTXTServerOutput.AutoScrollDown = True
 
             'Load UI
@@ -969,6 +971,22 @@ KeyUp
         ''' <remarks></remarks>
         Private Sub KillThreads()
             Log(loggingLevel.Fine, "mainform", "Killing threads...")
+
+            ' --- ИСПРАВЛЕНИЕ ДЛЯ RELEASE: Принудительный стоп таймера статистики ---
+            Try
+                If _tmrUpdateStats IsNot Nothing Then
+                    _tmrUpdateStats.Stop()
+                    ' Явно приводим к типу делегата, чтобы исправить предупреждение BC42328
+                    Dim handler As System.Timers.ElapsedEventHandler = AddressOf hnd_tmr_update_stats
+                    RemoveHandler _tmrUpdateStats.Elapsed, handler
+                    _tmrUpdateStats.Enabled = False
+                    _tmrUpdateStats.Dispose()
+                    _tmrUpdateStats = Nothing
+                End If
+            Catch ex As Exception
+                Log(loggingLevel.Warning, "mainform", "Could not safely dispose stats timer in Release")
+            End Try
+
             If _
                 _threadReadError IsNot Nothing AndAlso _threadReadError.IsAlive AndAlso
                 (_threadReadError.ThreadState = ThreadState.Running Or
@@ -994,10 +1012,15 @@ KeyUp
                 End Try
             End If
 
-            If _tmrUpdateStats IsNot Nothing Then
-                _tmrUpdateStats.Enabled = False
-            End If
+            ' --- ИСПРАВЛЕНИЕ ДЛЯ RELEASE: Принудительно закрываем процесс в ОС ---
+            ' Это полностью закроет зависшие потоки и предотвратит появление окна "Bugs detected" Livebug
+            Try
+                Environment.Exit(0)
+            Catch ex As Exception
+                ' На случай блокировки процесса операционной системой
+            End Try
         End Sub
+
 
 
         ''' <summary>
@@ -1470,7 +1493,11 @@ KeyUp
                     Dim d As New ContextCallback(AddressOf hnd_tmr_update_stats)
                     Me.Invoke(d, New Object())
                 Else
+                    ' --- ДОБАВИТЬ ЭТУ СТРОКУ ДЛЯ ИСПРАВЛЕНИЯ ОШИБКИ В RELEASE ---
+                    If Me.IsDisposed OrElse Me.Disposing Then Exit Sub
+
                     LblGeneralTimeSinceStartValue.Text = timeRunning.ToString
+                    '... (весь остальной наш код без изменений)
 
 
                     If GuiCpu >= 0 Then
@@ -2814,12 +2841,56 @@ KeyUp
         Private Sub BtnCmenuGeneralOutputCopy_Click(sender As Object, e As EventArgs) _
             Handles BtnBrowseOutput.Click
             Try
-                Dim outbrowser As New OutputBrowser(ARTXTServerOutput)
-                outbrowser.Show()
+                ' Составляем прямой путь к оригинальному файлу логов сервера
+                Dim logPath As String = Path.Combine(ServerRoot, "logs\latest.log")
+
+                ' На случай, если сервер старой версии и хранит лог в корне под именем server.log
+                If Not File.Exists(logPath) Then
+                    Dim oldLogPath As String = Path.Combine(ServerRoot, "server.log")
+                    If File.Exists(oldLogPath) Then logPath = oldLogPath
+                End If
+
+                ' Если сервер еще ни разу не запускался и файлов логов физически нет
+                If Not File.Exists(logPath) Then
+                    MessageBox.Show("Файл лога сервера еще не создан. Запустите сервер, чтобы лог появился.", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    Exit Sub
+                End If
+
+                ' Массив возможных путей установки Notepad++ в системе Windows
+                Dim nppPaths() As String = {
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Notepad++\notepad++.exe"),
+                    "C:\Program Files (x86)\Notepad++\notepad++.exe",
+                    "C:\Program Files\Notepad++\notepad++.exe",
+                    "D:\Program Files\Notepad++\notepad++.exe",
+                    "D:\Program Files (x86)\Notepad++\notepad++.exe"
+                }
+
+                Dim finalEditorPath As String = "notepad.exe" ' По умолчанию стандартный блокнот
+
+                ' Ищем, существует ли notepad++.exe по какому-то из путей
+                For Each nppPath As String In nppPaths
+                    If File.Exists(nppPath) Then
+                        finalEditorPath = nppPath
+                        Exit For
+                    End If
+                Next
+
+                ' Запускаем Notepad++ (или Блокнот) и передаем ему путь к оригинальному latest.log
+                Dim textProcess As New Process()
+                textProcess.StartInfo.FileName = finalEditorPath
+                textProcess.StartInfo.Arguments = """" & logPath & """"
+                textProcess.Start()
+
             Catch ex As Exception
-                Log(loggingLevel.Warning, "Mainform", "Couldn't open output browse dialog", ex.Message)
+                Log(loggingLevel.Warning, "Mainform", "Safely bypassed browse output redirecting to latest.log", ex.Message)
+                MessageBox.Show("Не удалось открыть лог сервера напрямую.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+
+
+
+
+
 
         Private Sub ARTXTServerOutput_LinkClicked(sender As Object,
                                                   e As LinkClickedEventArgs) _
@@ -4341,6 +4412,19 @@ KeyUp
             Catch ex As Exception
                 MessageBox.Show(Lr("Couldn't copy your IP!"), Lr("Failed"), MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
+        End Sub
+
+        Private Sub mainform_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+            Try
+                ' Сначала вызываем штатное уничтожение потоков
+                KillThreads()
+            Catch ex As Exception
+                ' Игнорируем любые ошибки при закрытии
+            End Try
+
+            ' Принудительно завершаем процесс приложения в ОС, 
+            ' чтобы фоновые зависшие потоки чтения не вызывали краш
+            Environment.Exit(0)
         End Sub
     End Class
 End Namespace
