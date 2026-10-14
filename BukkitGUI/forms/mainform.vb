@@ -286,21 +286,65 @@ Namespace Core
             If Me.InvokeRequired Then Me.Invoke(New ContextCallback(AddressOf hnd_tmr_update_stats)) Else LblGeneralTimeSinceStartValue.Text = timeRunning.ToString
         End Sub
 
-        ' Вспомогательные заглушки для элементов WinForms
-        Private Sub superstart_init() : End Sub
-        Private Function superstart_validate(warn As Boolean) As Boolean : Return True : End Function
-        Private Sub info_load() : End Sub
-        Private Sub Settings_init() : End Sub
-        Private Sub text_options_init() : End Sub
-        Private Sub autoserverstart_check() : End Sub
-        Public Sub SendToTray() : End Sub
-        Private Sub hnd_PlayerJoin(e As Object) : End Sub
-        Private Sub hnd_PlayerDisconnect(e As Object) : End Sub
-        Private Sub LoadInstalledPlugins(e As Object) : End Sub
-        Private Sub thds_SetBukGetPlugins(e As Object) : End Sub
-        Private Sub hnd_ip_loaded(e As Object) : End Sub
-        Private Sub hnd_last_version_loaded(e As Object) : End Sub
-        Private Sub errorLVICreated(e As Object) : End Sub
-        Private Sub playerlist_CheckUIList(e As Object) : End Sub
+        ' Вспомогательные заглушки для элементов WinForms (Исправленный формат)
+        Private Sub superstart_init()
+        End Sub
+
+        Private Function superstart_validate(warn As Boolean) As Boolean
+            Return True
+        End Function
+
+        Private Sub info_load()
+            
+        End Sub
+
+        Private Sub Settings_init()
+            
+        End Sub
+
+        Private Sub text_options_init()
+            
+        End Sub
+
+        Private Sub autoserverstart_check()
+            
+        End Sub
+
+        Public Sub SendToTray()
+            
+        End Sub
+
+        Private Sub hnd_PlayerJoin(e As Object)
+            
+        End Sub
+
+        Private Sub hnd_PlayerDisconnect(e As Object)
+            
+        End Sub
+
+        Private Sub LoadInstalledPlugins(e As Object)
+            
+        End Sub
+
+        Private Sub thds_SetBukGetPlugins(e As Object)
+            
+        End Sub
+
+        Private Sub hnd_ip_loaded(e As Object)
+            
+        End Sub
+
+        Private Sub hnd_last_version_loaded(e As Object)
+            
+        End Sub
+
+        Private Sub errorLVICreated(e As Object)
+            
+        End Sub
+
+        Private Sub playerlist_CheckUIList(e As Object)
+            
+        End Sub
     End Class
 End Namespace
+
