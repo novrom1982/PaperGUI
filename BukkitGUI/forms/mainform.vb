@@ -50,9 +50,9 @@ Namespace Core
         ''' </summary>
         ''' <remarks></remarks>
 #If DEBUG Then
-        Private ReadOnly _caption As String = "[DEBUG] BukkitGUI v" & My.Application.Info.Version.ToString
+        Private ReadOnly _caption As String = "[DEBUG] PaperGUI v1.0"
 
-        Private Sub Debughook(s As Object, e As KeyEventArgs) Handles Me.KeyUp, TabCtrlMain.KeyUp, ARTXTServerOutput. _
+        Private Sub Debughook(s As Object, e As KeyEventArgs) Handles Me.KeyUp, TabCtrlMain.KeyUp, ARTXTServerOutput.
 KeyUp
             If e.Control And e.KeyCode = Keys.E Then
                 Dim output = InputBox("emulated console output", "debug emulator")
@@ -61,7 +61,7 @@ KeyUp
         End Sub
 #Else
 
-        Private ReadOnly _caption As String = "BukkitGUI v" & My.Application.Info.Version.ToString
+        Private ReadOnly _caption As String = "PaperGUI v1.0"
 
 #End If
 
@@ -107,6 +107,8 @@ KeyUp
             set_handles()
 
             BtnBrowseOutput.Text = "Открыть лог"
+
+            lblInfo2.Text = "PaperGUI — Панель управления сервером"
 
             ARTXTServerOutput.AutoScrollDown = True
 
