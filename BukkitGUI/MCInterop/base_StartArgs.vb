@@ -1,8 +1,8 @@
-﻿'============================================='''
+'=============================================================================
 '
 ' This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 ' If a copy of the MPL was not distributed with this file,
-' you can obtain one at http://mozilla.org/MPL/2.0/.
+' you can obtain one at http://mozilla.org.
 ' 
 ' Source and compiled files may only be redistributed if they comply with
 ' the mozilla MPL2 license, and may not be monetized in any way,
@@ -10,122 +10,44 @@
 '
 ' ©Bertware, visit http://bertware.net
 '
-'============================================='''
+'=============================================================================
 
 Imports Net.Bertware.BukkitGUI.Core
 Imports Net.Bertware.BukkitGUI.Utilities
 
 Namespace MCInterop
-    Public Class execStartArgs
-        Public executable As String
-        Public arguments As String
+    Public Class base_StartArgs
+        Public Jre As javaAPI.javaVersion
+        Public MinRam As UInt32
+        Public MaxRam As UInt32
+        Public JarPath As String
+        Public CustomArgs As String
+        Public CustomSwitches As String
+        Public ServerType As server.McInteropType
 
-        Public Sub New(executable As String, arguments As String)
-            Me.executable = executable
-            Me.arguments = arguments
-        End Sub
-    End Class
-
-    Public Class javaStartArgs
-        Public executable As String = ""
-        Public jar As String = ""
-        Public switches As String = ""
-        Public args As String = ""
-        Public custom_arg As String = ""
-        Public custom_switch As String = ""
-
+        ''' <summary>
+        ''' Создает новый экземпляр аргументов запуска, по умолчанию настроенный под Paper
+        ''' </summary>
         Public Sub New()
-            Me.executable = ""
-            Me.args = ""
-            Me.jar = ""
-            Me.switches = ""
-            Me.custom_arg = ""
-            Me.custom_switch = ""
+            Me.Jre = javaAPI.javaVersion.java7 ' Примечание: в настройках GUI пользователя должна быть выбрана актуальная Java (17/21)
+            Me.MinRam = 1024
+            Me.MaxRam = 2048
+            Me.JarPath = "paper.jar"
+            Me.CustomArgs = ""
+            Me.CustomSwitches = ""
+            Me.ServerType = server.McInteropType.paper ' По умолчанию выставляем наш Paper
         End Sub
 
-        Public Sub New(executable As String, flags As String, jar As String, switches As String)
-            Me.executable = executable
-            Me.args = flags
-            Me.jar = jar
-            Me.switches = switches
-            Me.custom_arg = ""
-            Me.custom_switch = ""
+        Public Sub New(jre As javaAPI.javaVersion, minRam As UInt32, maxRam As UInt32, jarPath As String,
+                       Optional ByVal customArgs As String = "", Optional ByVal customSwitches As String = "",
+                       Optional ByVal serverType As server.McInteropType = server.McInteropType.paper)
+            Me.Jre = jre
+            Me.MinRam = minRam
+            Me.MaxRam = maxRam
+            Me.JarPath = jarPath
+            Me.CustomArgs = customArgs
+            Me.CustomSwitches = customSwitches
+            Me.ServerType = serverType
         End Sub
-
-        
-        ''' <summary>
-        '''     Creates a new JavaStartArgs instance
-        ''' </summary>
-        ''' <param name="jre">the java version to use, as javaAPI.Javaversion</param>
-        ''' <param name="minram">the minimum amount of RAM for the VM (-xms)</param>
-        ''' <param name="maxram">the maximum amount of RAM for the VM (-xmx)</param>
-        ''' <param name="jar">the location of the jar file to be ran</param>
-        ''' <param name="CustomArgs">Custom arguments that should be added (optional)</param>
-        ''' <param name="server">The server type. Baded upon this type required switches will be added. (Optional)</param>
-        ''' <remarks></remarks>
-        Public Sub New(jre As javaAPI.javaVersion, minram As UInt32, maxram As UInt32, jar As String,
-                       Optional ByVal CustomArgs As String = "", Optional ByVal CustomSwitches As String = "",
-                       Optional ByVal server As McInteropType = McInteropType.bukkit)
-            If minram < 16 Then minram = 16
-            If maxram < 16 Then maxram = 16
-
-            Me.executable = GetExec(jre)
-            
-            ' Для Paper и флагов Aikar's критически важно, чтобы Xms был равен Xmx
-            If server = McInteropType.paper Then
-                minram = maxram
-            End If
-
-            Me.args = "-Xms" & minram & "M -Xmx" & maxram & "M "
-            Me.jar = jar
-            Me.custom_arg = CustomArgs
-            Me.custom_switch = CustomSwitches
-
-            Select Case server
-                Case McInteropType.paper
-                    ' Флаги оптимизации Aikar's Flags для Paper
-                    Me.args += "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 " &
-                               "-XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch " &
-                               "-XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8m " &
-                               "-XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 " &
-                               "-XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 " &
-                               "-XX:SurvivingRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 " &
-                               "-Dusing.aikars.flags=https://emc.gs -Daikars.new.flags=true "
-                    
-                    ' Отключаем ANSI-цвета и JLine, чтобы GUI корректно читал лог
-                    Me.args += "-Dterminal.jline=false -Dterminal.ansi=false -Duser.language=en "
-                    Me.switches = "nogui"
-
-                Case McInteropType.bukkit
-                    Me.switches = "-nojline"
-                    Me.args += " -Duser.language=en "
-                    If readAsBool("utf_8_compatibility", False, "output") Then _
-                        Me.args += " -Dfile.encoding=utf-8 "
-
-                Case McInteropType.vanilla
-                    Me.switches = "nogui"
-
-                Case McInteropType.spigot
-                    Me.switches = "-nojline"
-                    Me.args += " -Duser.language=en "
-                    If readAsBool("utf_8_compatibility", False, "output") Then _
-                        Me.args += " -Dfile.encoding=utf-8 "
-            End Select
-        End Sub
-
-        
-        ''' <summary>
-        '''     Compile all the variables into one argument, needed to start the process
-        ''' </summary>
-        ''' <value>The argument needed to start the process, as string</value>
-        ''' <returns>The argument needed to start the process, as string</returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property buildArgs() As String
-            Get
-                Return _
-                    (args & " " & custom_arg & " " & "-jar """ & jar & """ " & Me.switches & " " & custom_switch).
-                        Replace("   ", " ").Replace("  ", " ").Trim
-            End Get
-        End Property
     End Class
 End Namespace
