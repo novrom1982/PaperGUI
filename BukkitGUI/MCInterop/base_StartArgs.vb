@@ -17,7 +17,7 @@ Imports Net.Bertware.BukkitGUI.Utilities
 
 Namespace MCInterop
     Public Class base_StartArgs
-        Public Jre As javaAPI.javaVersion
+        Public Jre As Object
         Public MinRam As UInt32
         Public MaxRam As UInt32
         Public JarPath As String
