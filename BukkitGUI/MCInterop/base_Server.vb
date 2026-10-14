@@ -64,7 +64,7 @@ Namespace MCInterop
             If minram < 16 Then minram = 16
             If maxram < 16 Then maxram = 16
 
-            Me.executable = GetExec(jre)
+            Me.executable = "java"
 
             ' Для Paper и флагов Aikar's критически важно, чтобы Xms был равен Xmx
             If server = server.McInteropType.paper Then
