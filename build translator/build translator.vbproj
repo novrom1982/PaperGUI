@@ -80,7 +80,7 @@
     </AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestCertificateThumbprint>D8145082843A5E6A8C7EF0AC02311FA317FD4D3A</ManifestCertificateThumbprint>
