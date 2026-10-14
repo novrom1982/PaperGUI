@@ -1,8 +1,8 @@
-'=============================================================================
+﻿'============================================='''
 '
 ' This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 ' If a copy of the MPL was not distributed with this file,
-' you can obtain one at http://mozilla.org.
+' you can obtain one at http://mozilla.org/MPL/2.0/.
 ' 
 ' Source and compiled files may only be redistributed if they comply with
 ' the mozilla MPL2 license, and may not be monetized in any way,
@@ -10,8 +10,16 @@
 '
 ' ©Bertware, visit http://bertware.net
 '
-'=============================================================================
+'============================================='''
 
+
+
+'This module will handle the minecraft server.
+'Most important: the process (public property host) and the streams, as those are needed
+'Whatever method is used, the streams should be available at serverin, serverout and servererror
+'If the GUI hosts the server connection itself (for example built-in remote support, instead of classic java server) the host should point at the current process.
+
+'Other things: Time since start, events for easy handling, player list
 Imports System.ComponentModel
 Imports System.IO
 Imports System.Security
@@ -22,92 +30,17 @@ Imports Net.Bertware.BukkitGUI.Core
 Imports Timer = System.Timers.Timer
 
 Namespace MCInterop
-    Public Class execStartArgs
-        Public executable As String
-        Public arguments As String
-
-        Public Sub New(executable As String, arguments As String)
-            Me.executable = executable
-            Me.arguments = arguments
-        End Sub
-    End Class
-
-    Public Class javaStartArgs
-        Public executable As String = ""
-        Public jar As String = ""
-        Public switches As String = ""
-        Public args As String = ""
-        Public custom_arg As String = ""
-        Public custom_switch As String = ""
-
-        Public Sub New()
-            Me.executable = ""
-            Me.args = ""
-            Me.jar = ""
-            Me.switches = ""
-            Me.custom_arg = ""
-            Me.custom_switch = ""
-        End Sub
-
-        Public Sub New(executable As String, flags As String, jar As String, switches As String)
-            Me.executable = executable
-            Me.args = flags
-            Me.jar = jar
-            Me.switches = switches
-            Me.custom_arg = ""
-            Me.custom_switch = ""
-        End Sub
-
-        Public Sub New(jre As Object, minram As UInt32, maxram As UInt32, jar As String,
-                       Optional ByVal CustomArgs As String = "", Optional ByVal CustomSwitches As String = "",
-                       Optional ByVal server As McInteropType = McInteropType.paper)
-            If minram < 16 Then minram = 16
-            If maxram < 16 Then maxram = 16
-
-            Me.executable = "java"
-
-            ' Для Paper и флагов Aikar's критически важно, чтобы Xms был равен Xmx
-            If server = server.McInteropType.paper Then
-                minram = maxram
-            End If
-
-            Me.args = "-Xms" & minram & "M -Xmx" & maxram & "M "
-            Me.jar = jar
-            Me.custom_arg = CustomArgs
-            Me.custom_switch = CustomSwitches
-
-            Select Case server
-                Case server.McInteropType.paper
-                    ' Флаги оптимизации Aikar's Flags для Paper
-                    Me.args += "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 " &
-                               "-XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch " &
-                               "-XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8m " &
-                               "-XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 " &
-                               "-XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 " &
-                               "-XX:SurvivingRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 " &
-                               "-Dusing.aikars.flags=https://emc.gs -Daikars.new.flags=true "
-
-                    ' Отключаем ANSI-цвета и JLine, чтобы GUI корректно читал лог
-                    Me.args += "-Dterminal.jline=false -Dterminal.ansi=false -Duser.language=en "
-                    Me.switches = "nogui"
-            End Select
-        End Sub
-
-        Public ReadOnly Property buildArgs() As String
-            Get
-                Return (args & " " & custom_arg & " " & "-jar """ & jar & """ " & Me.switches & " " & custom_switch).
-                        Replace("   ", " ").Replace("  ", " ").Trim
-            End Get
-        End Property
-    End Class
-
     Public Module server
         Public Enum McInteropType
-            ' Оставляем только Paper и базовые системные типы
-            paper ' Paper server
-            remote ' Remote server connection
-            exexcutable ' General executable server
-            java ' General java server
+            'these are for other classes
+            bukkit 'bukkit server
+            vanilla 'vanilla server
+
+            'These 3 are used for the server.Currentype
+            remote 'remote server
+            exexcutable 'general executable server
+            java 'general java server
+            spigot
         End Enum
 
         Private _running As Boolean,
@@ -124,69 +57,97 @@ Namespace MCInterop
 
         Private _remote_obj As RemoteServerBase
 
+
         ''' <summary>
         '''     Indicates if the server is running or not
         ''' </summary>
-        Public ReadOnly Property running As Boolean
+        ''' <value>Boolean to indicate if the server is running or not</value>
+        ''' <returns>Boolean to indicate if the server is running or not</returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property running As Boolean 'boolean to show if server is running or not
             Get
                 Return _running
             End Get
         End Property
 
+
         ''' <summary>
         '''     The process that hosts the server
         ''' </summary>
-        Public ReadOnly Property host As Process
+        ''' <value>the process object</value>
+        ''' <returns>the process object</returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property host As Process 'process that hosts the server
             Get
                 Return _host
             End Get
         End Property
 
+
         ''' <summary>
         '''     The standardOut stream of the process
         ''' </summary>
-        Public ReadOnly Property serverOut As Stream
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks>Bukkit outputs data using both standardout and standarderror</remarks>
+        Public ReadOnly Property serverOut As Stream 'server out stream, to receive output
             Get
                 Return _serverout
             End Get
         End Property
 
+
         ''' <summary>
         '''     The standardError stream of the server
         ''' </summary>
-        Public ReadOnly Property serverError As Stream
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks>Bukkit outputs data using both standardout and standarderror</remarks>
+        Public ReadOnly Property serverError As Stream 'server error stream, to receive output
             Get
                 Return _servererror
             End Get
         End Property
 
+
         ''' <summary>
         '''     The standardIn stream of the server, used for sending of commands etc.
         ''' </summary>
-        Public ReadOnly Property serverIn As Stream
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property serverIn As Stream 'server input stream, to write commands
             Get
                 Return _serverin
             End Get
         End Property
 
+
         ''' <summary>
         '''     The time that has elapsed since the start of the server
         ''' </summary>
-        Public ReadOnly Property timeRunning As TimeSpan
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property timeRunning As TimeSpan 'time since server started
             Get
                 Return _timerunning
             End Get
         End Property
 
+
         ''' <summary>
         '''     The list of currently online players
         ''' </summary>
-        Public Property playerList As List(Of Player)
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property playerList As List(Of Player) 'list of player names
             Get
                 Return _playerlist
             End Get
             Set(value As List(Of Player))
-                _playerlist = value
+                _playerlist = playerList
             End Set
         End Property
 
@@ -204,7 +165,7 @@ Namespace MCInterop
 
         Public ReadOnly Property playerNameList As List(Of String)
             Get
-                If _playerlist Is Nothing Then Return Nothing
+                If _playerlist Is Nothing Then Return Nothing : Exit Property
                 Dim l As New List(Of String)
                 For Each pl As Player In _playerlist
                     l.Add(pl.name)
@@ -221,35 +182,60 @@ Namespace MCInterop
             Return p
         End Function
 
-        Public Event ServerStarting()
-        Public Event ServerStarted()
-        Public Event ServerStopped()
-        Public Event ServerStopping()
+
         ''' <summary>
-        '''     Start a new Paper server, using Java
+        '''     Raised at the beginning of the server start routine
         ''' </summary>
-        Public Function StartServer(Jsa As javaStartArgs, type As McInteropType) As UInt64
+        ''' <remarks></remarks>
+        Public Event ServerStarting() 'Raised when server is being initialized
+
+        ''' <summary>
+        '''     Raised when the server is fully started
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Event ServerStarted() 'Raised when server start is finished
+
+        ''' <summary>
+        '''     Raised when the server stopped
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Event ServerStopped() 'Raised when server stopped
+
+        Public Event ServerStopping()
+
+
+        ''' <summary>
+        '''     Start a new minecraft server, using Java
+        ''' </summary>
+        ''' <param name="Jsa">The start information to start the server</param>
+        ''' <returns>Returns the ID of the started process</returns>
+        ''' <remarks></remarks>
+        Public Function StartServer(Jsa As javaStartArgs, type As McInteropType) As UInt64 'return process ID
             Dim p As New Process
             Try
                 _current_type = type
-                Log(livebug.loggingLevel.Fine, "Server", "Starting Paper server (java)", "server")
+                Log(livebug.loggingLevel.Fine, "Server", "Starting server (java)", "server")
                 Log(loggingLevel.Fine, "Server", "Executable:" & Jsa.executable, "Server-StartJavaServer")
                 Log(loggingLevel.Fine, "Server", "Jar:" & Jsa.jar, "Server-StartJavaServer")
                 Log(loggingLevel.Fine, "Server", "Options:" & Jsa.args, "Server-StartJavaServer")
                 Log(loggingLevel.Fine, "Server", "Flags:" & Jsa.switches, "Server-StartJavaServer")
                 Log(loggingLevel.Fine, "Server", "Total argument:" & Jsa.buildArgs, "Server-StartJavaServer")
 
-                ' Проверка пути к Java
-                If Jsa.executable Is Nothing OrElse Jsa.executable = "" OrElse Not Jsa.executable.EndsWith(".exe") OrElse
+                'check for valid path
+                If _
+                    Jsa.executable Is Nothing OrElse Jsa.executable = "" OrElse Not Jsa.executable.EndsWith(".exe") OrElse
                     FileSystem.FileExists(Jsa.executable) = False Then
                     MessageBox.Show(
-                        Lr("The java path could not be found, server start aborted") & vbCrLf &
-                        Lr("Please select the correct java version in the superstart tab"), Lr("Could not start server"),
+                        lr("The java path could not be found, server start aborted") & vbCrLf &
+                        lr("Please select the correct java version in the superstart tab"), lr("Could not start server"),
                         MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    Log(loggingLevel.Warning, "Server", "File not found, server start cancelled:" & Jsa.executable)
+                    Log(loggingLevel.Warning, "Server",
+                        "File not found, server start cancelled:" & Jsa.executable)
                     Return 0
+                    Exit Function
                 End If
 
+                'only raise after validation
                 RaiseEvent ServerStarting()
                 Thread.Sleep(50)
 
@@ -266,33 +252,35 @@ Namespace MCInterop
                     .UseShellExecute = False
                     .WorkingDirectory = ServerRoot
                 End With
-
                 Log(loggingLevel.Fine, "Server", "Starting process")
-                If p.StartInfo.FileName IsNot Nothing Then
-                    p.Start()
-                Else
+                If p.StartInfo.FileName IsNot Nothing Then p.Start() Else _
                     MessageBox.Show(Lr("Could not start the process - no executable given"),
                                     Lr("Could not start server"), MessageBoxButtons.OK, MessageBoxIcon.Error)
-                End If
-
                 Log(loggingLevel.Fine, "Server", "Process started")
                 _host = p
                 ServerStart_Common()
-                Log(loggingLevel.Fine, "Server", "Paper server started successfully")
+                Log(loggingLevel.Fine, "Server", "Server started succesfully")
                 RaiseEvent ServerStarted()
-
-                If p IsNot Nothing AndAlso p.Id > 0 Then
-                    Return (p.Id) Else Return 0
+                If p IsNot Nothing AndAlso p.Id > 0 Then Return (p.Id) Else Return 0
             Catch winex As Win32Exception
-                MessageBox.Show(Lr("The server could not be started. Try running the GUI as administrator"), Lr("File I/O error"), MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show(
+                    Lr(
+                        "The server could not be started. It seems like you don't have permissions to access needed files. Try running the GUI as administator"),
+                    Lr("File I/O error"), MessageBoxButtons.OK, MessageBoxIcon.Error)
                 Log(loggingLevel.Warning, "Server", "Security error in Startserver (java)! " & winex.Message)
                 If p IsNot Nothing Then Return (p.Id) Else Return 0
             Catch ioex As IOException
-                MessageBox.Show(Lr("The server could not be started. Try running the GUI as administrator"), Lr("File I/O error"), MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show(
+                    Lr(
+                        "The server could not be started. It seems like you don't have permissions to access needed files. Try running the GUI as administator"),
+                    Lr("File I/O error"), MessageBoxButtons.OK, MessageBoxIcon.Error)
                 Log(loggingLevel.Warning, "Server", "Security error in Startserver (java)! " & ioex.Message)
                 If p IsNot Nothing Then Return (p.Id) Else Return 0
             Catch pex As SecurityException
-                MessageBox.Show(Lr("The server could not be started. Try running the GUI as administrator"), Lr("Insufficient rights"), MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show(
+                    Lr(
+                        "The server could not be started. It seems like you don't have permissions to do this. Try running the GUI as administator"),
+                    Lr("Insufficient rights"), MessageBoxButtons.OK, MessageBoxIcon.Error)
                 Log(loggingLevel.Warning, "Server", "Security error in Startserver (java)! " & pex.Message)
                 If p IsNot Nothing Then Return (p.Id) Else Return 0
             Catch ex As Exception
@@ -301,18 +289,27 @@ Namespace MCInterop
             End Try
         End Function
 
+
         ''' <summary>
-        '''     Start a new executable Paper server (binary)
+        '''     Start a new executable minecraft server
         ''' </summary>
+        ''' <param name="esa">The start information to start the server</param>
+        ''' <returns>Returns the ID of the started process</returns>
+        ''' <remarks></remarks>
         Public Function StartServer(Esa As execStartArgs, type As McInteropType) As UInt16
             Try
                 _current_type = type
-                Log(loggingLevel.Fine, "Server", "Starting Paper server (executable)")
+                Log(loggingLevel.Fine, "Server", "Starting server (executable)")
 
                 If Not FileSystem.FileExists(Esa.executable) Then
-                    MessageBox.Show(Lr("The program couldn't find this executable: " & Esa.executable & vbCrLf & "Server start cancelled"), Lr("File not found"), MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    Log(loggingLevel.Warning, "Server", "File not found, server start cancelled:" & Esa.executable)
+                    MessageBox.Show(
+                        Lr(
+                            "The program couldn't find this executable: " & Esa.executable & vbCrLf &
+                            "Server start cancelled"), Lr("File not found"), MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Log(loggingLevel.Warning, "Server",
+                        "File not found, server start cancelled:" & Esa.executable)
                     Return 0
+                    Exit Function
                 End If
 
                 RaiseEvent ServerStarting()
@@ -338,7 +335,7 @@ Namespace MCInterop
                 Log(loggingLevel.Fine, "Server", "Process started")
                 _host = p
                 ServerStart_Common()
-                Log(loggingLevel.Fine, "Server", "Server started successfully")
+                Log(loggingLevel.Fine, "Server", "Server started succesfully")
                 RaiseEvent ServerStarted()
                 If p IsNot Nothing AndAlso p.Id > 0 AndAlso p.HasExited = False Then Return (p.Id) Else Return 0
             Catch ex As Exception
@@ -347,9 +344,13 @@ Namespace MCInterop
             End Try
         End Function
 
+
         ''' <summary>
-        '''     Start an embedded remote Paper server connection
+        '''     Start an embedded remote server connection
         ''' </summary>
+        ''' <param name="Rm">A remoteServer class that inherits from RemoteServerBase</param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Function StartServer(Rm As RemoteServerBase) As UInt16
             Try
                 _current_type = McInteropType.remote
@@ -358,7 +359,11 @@ Namespace MCInterop
 
                 _remote_obj = Rm
                 _running = True
-                _host = Process.GetCurrentProcess
+
+                _host = Process.GetCurrentProcess 'the server is hosted in the GUI
+
+                'Serverstart_common can't be used as this server is ran inside the GUI
+                'initialize variables for new server, set streams
 
                 Log(loggingLevel.Fine, "Server", "Initializing handling for new remote server")
                 _playerlist = New List(Of Player)
@@ -375,21 +380,23 @@ Namespace MCInterop
                 Log(loggingLevel.Fine, "Server", "New remote server initialized")
 
                 Rm.Run()
+
                 csw = Nothing
+
                 RaiseEvent ServerStarted()
 
-                Log(loggingLevel.Fine, "Server", "Server started successfully")
+                Log(loggingLevel.Fine, "Server", "Server started succesfully")
                 Return Process.GetCurrentProcess.Id
             Catch ex As Exception
                 Log(loggingLevel.Severe, "Server", "Severe error in Startserver (remote)!", ex.Message)
                 Return Process.GetCurrentProcess.Id
             End Try
         End Function
+
         Public Sub StopServer()
             Log(loggingLevel.Info, "server", "StopServer() was called")
             RaiseEvent ServerStopping()
-            ' Даем современному Paper время на асинхронное сохранение мира и чанков
-            Thread.Sleep(500)
+            Thread.Sleep(10) 'Allow last actions before stop, triggered by event
             If CurrentServerType = McInteropType.remote Then
                 _ServerStopped()
             Else
@@ -420,9 +427,13 @@ Namespace MCInterop
             Log(loggingLevel.Info, "server", "The server has stopped... Cleanup finished")
         End Sub
 
+
         ''' <summary>
         '''     Send a command to the server
         ''' </summary>
+        ''' <param name="command">The command to be sent</param>
+        ''' <param name="suspressErrors">If errors should be suspressed</param>
+        ''' <remarks></remarks>
         Public Function SendCommand(command As String, Optional suspressErrors As Boolean = False) As Boolean
             Try
                 If CurrentServerType <> McInteropType.remote Then
@@ -430,14 +441,16 @@ Namespace MCInterop
                         If csw Is Nothing AndAlso _host.Id <> Process.GetCurrentProcess.Id Then _
                             csw = _host.StandardInput
 
-                        Dim buffer() As Byte = Encoding.GetEncoding(ServerEncoding).GetBytes(command & vbCr)
+                        Dim buffer() As Byte =
+                                Encoding.GetEncoding(ServerEncoding).GetBytes(command & vbCr)
                         csw.BaseStream.Write(buffer, 0, buffer.Length)
                         csw.BaseStream.Flush()
 
                         Return True
                     Else
                         If Not suspressErrors Then _
-                            MessageBox.Show(Lr("The server should be running before you can send commands."), Lr("Could not send command"), MessageBoxButtons.OK, MessageBoxIcon.Error)
+                            MessageBox.Show(Lr("The server should be running before you can send commands."),
+                                            Lr("Could not send command"), MessageBoxButtons.OK, MessageBoxIcon.Error)
                         Return False
                     End If
                 Else
@@ -446,8 +459,11 @@ Namespace MCInterop
                 End If
             Catch ex As Exception
                 If Not suspressErrors Then _
-                    MessageBox.Show(Lr("The command could not be sent due to an error. See the log file for more information"), Lr("Could not send command"), MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Log(loggingLevel.Severe, "Server", "Could not send command """ & command & """ exception", ex.Message)
+                    MessageBox.Show(
+                        Lr("The command could not be sent due to an error. See the log file for more information"),
+                        Lr("Could not send command"), MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Log(loggingLevel.Severe, "Server", "Could not send command """ & command & """ exception",
+                    ex.Message)
                 Return False
             End Try
             Return False
