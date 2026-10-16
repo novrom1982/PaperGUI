@@ -1,4 +1,4 @@
-﻿'============================================='''
+'============================================='''
 '
 ' This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 ' If a copy of the MPL was not distributed with this file,
@@ -66,8 +66,8 @@ Public Class SplashScreen
         'initialize filelocation module, which determines wether files should be stored in appdata or local
 
         If filelocation.location = filelocation.filelocation.global_files Then _
-'NO TRANSLATIONS! TRANSLATIONS AREN'T INITIALIZED YET
-            If Process.GetProcessesByName("BukkitGUI").Length > 1 Then
+            'NO TRANSLATIONS! TRANSLATIONS AREN'T INITIALIZED YET
+            If Process.GetProcessesByName(My.Application.Info.AssemblyName).Length > 1 Then
                 MessageBox.Show(
                     "You cannot run multiple instances of the GUI while the files are saved in appdata. Change in ""Options and Settings"" and try again.",
                     "Multiple GUI instances detected", MessageBoxButtons.OK, MessageBoxIcon.Error)
