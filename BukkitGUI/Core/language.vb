@@ -1,4 +1,4 @@
-﻿'============================================='''
+'============================================='''
 '
 ' This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 ' If a copy of the MPL was not distributed with this file,
@@ -30,7 +30,7 @@ Namespace Core
         '
         '<text string="original">translation</text>
         '
-        Private ReadOnly DefaultEnglish As String = LocalizationPath & "/" & "default.xml"
+        Private ReadOnly DefaultEnglish As String = LocalizationPath & "/" & "lang_russian.xml"
         Private Const CurrentFileVersion As String = "1.0"
 
         Dim _langXml As fxml
@@ -64,8 +64,32 @@ Namespace Core
 
         Public Sub Init() 'Open XML file, MUST BE DONE BEFORE USEAGE!
             Try
+                ' --- НАЧАЛО ВСТАВКИ: ГАРАНТИРУЕМ НАЛИЧИЕ РУССКОГО ЯЗЫКА В НОВОЙ ПАПКЕ APPDATA ---
+                If Not Directory.Exists(LocalizationPath) Then Directory.CreateDirectory(LocalizationPath)
+                Dim targetRuFile As String = Path.Combine(LocalizationPath, "lang_russian.xml")
+
+                If Not File.Exists(targetRuFile) Then
+                    Try
+                        ' Вытаскиваем файл lang_russian.xml, который зашит в ресурсы самого EXE-файла
+                        Dim asm As System.Reflection.Assembly = System.Reflection.Assembly.GetExecutingAssembly()
+                        Dim resourceName As String = "Net.Bertware.BukkitGUI.lang_russian.xml"
+
+                        Using stream As Stream = asm.GetManifestResourceStream(resourceName)
+                            If stream IsNot Nothing Then
+                                Using fileStream As New FileStream(targetRuFile, FileMode.Create, FileAccess.Write)
+                                    stream.CopyTo(fileStream)
+                                End Using
+                            End If
+                        End Using
+                    Catch exRes As Exception
+                        Log(loggingLevel.Warning, "language", "Не удалось извлечь встроенный русский язык: " & exRes.Message)
+                    End Try
+                End If
+                ' --- КОНЕЦ ВСТАВКИ ---
+
                 Dim localization_file As String = read("language", DefaultEnglish)
 
+                ' Если файла ВСЁ ЕЩЕ нет на диске (например, сбой ресурсов), тогда оставляем старый костыль автора
                 If Not FileSystem.FileExists(localization_file) Then _
                     Create_file(localization_file, "<language version=""" & CurrentFileVersion & """></language>")
                 If File_Empty(localization_file) Then _
@@ -88,7 +112,8 @@ Namespace Core
             End Try
         End Sub
 
-        
+
+
         ''' <summary>
         '''     Replace a text with it's translation. If a translation isn't available, the original value will be returned
         ''' </summary>
