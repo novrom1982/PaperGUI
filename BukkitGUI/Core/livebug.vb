@@ -1,4 +1,4 @@
-﻿'============================================='''
+'============================================='''
 '
 ' This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 ' If a copy of the MPL was not distributed with this file,
@@ -37,7 +37,7 @@ Namespace Core
             Critical
         End Enum
 
-        Public log_file As String = LoggingPath & "/BukkitGUI.log"
+        Public log_file As String = LoggingPath & "/PaperGUI.log"
         Dim tls As TextWriterTraceListener
         Dim fs As Stream
         Dim sw As StreamWriter
@@ -49,7 +49,7 @@ Namespace Core
         ''' </summary>
         ''' <remarks>This routine should be executed first.</remarks>
         Public Sub init()
-            log_file = LoggingPath & "/BukkitGUI.log"
+            log_file = LoggingPath & "/PaperGUI.log"
             'this module is initialized before the common module. So the folder needs to be created if not present
             Try
                 If Not FileSystem.DirectoryExists(LoggingPath) Then _
