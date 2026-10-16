@@ -27,6 +27,7 @@ Imports Net.Bertware.Get
 Imports Net.Bertware.Utilities
 Imports Timer = System.Timers.Timer
 Imports Net.Bertware.BukkitGUI.forms
+Imports PaperTask = Net.Bertware.BukkitGUI.TaskManager.task
 
 Namespace Core
     Public Class Mainform
@@ -4019,9 +4020,29 @@ KeyUp
                     Dim d As New ContextCallback(AddressOf TaskManager_UpdateUI)
                     Me.Invoke(d, New Object())
                 Else
-                    If tasks Is Nothing Then Exit Sub
+                    ' Находим наш модуль и вытаскиваем коллекцию через Рефлексию по текстовой строке
+                    Dim asm As System.Reflection.Assembly = System.Reflection.Assembly.GetExecutingAssembly()
+                    Dim tType As Type = asm.GetType("Net.Bertware.BukkitGUI.TaskManager")
+
+                    If tType Is Nothing Then Exit Sub
+
+                    ' Достаем свойство "tasks" из статического модуля
+                    Dim pInfo As System.Reflection.PropertyInfo = tType.GetProperty("tasks", System.Reflection.BindingFlags.Public Or System.Reflection.BindingFlags.Static)
+                    Dim taskCollection As Object = Nothing
+
+                    If pInfo IsNot Nothing Then
+                        taskCollection = pInfo.GetValue(Nothing, Nothing)
+                    Else
+                        ' Если это не свойство, а публичное поле (переменная)
+                        Dim fInfo As System.Reflection.FieldInfo = tType.GetField("tasks", System.Reflection.BindingFlags.Public Or System.Reflection.BindingFlags.Static)
+                        If fInfo IsNot Nothing Then taskCollection = fInfo.GetValue(Nothing)
+                    End If
+
+                    If taskCollection Is Nothing Then Exit Sub
+
                     ALVTaskPlanner.Items.Clear()
-                    For Each task As task In tasks
+
+                    For Each task As PaperTask In CType(taskCollection, System.Collections.IEnumerable)
                         ALVTaskPlanner.Items.Add(GetTaskListLVI(task))
                     Next
                 End If
@@ -4030,7 +4051,7 @@ KeyUp
             End Try
         End Sub
 
-        Private Function GetTaskListLVI(t As task) As ListViewItem
+        Private Function GetTaskListLVI(t As PaperTask) As ListViewItem
             Dim lvi As New ListViewItem(
                 {t.name, t.trigger_type.ToString.Replace("_", " "), t.trigger_parameters.ToString,
                  t.action_type.ToString.Replace("_", " "), t.action_parameters.ToString,
