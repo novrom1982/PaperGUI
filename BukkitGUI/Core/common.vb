@@ -1,4 +1,4 @@
-﻿'============================================='''
+'============================================='''
 '
 ' This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 ' If a copy of the MPL was not distributed with this file,
@@ -27,7 +27,7 @@ Namespace Core
     ' <remarks></remarks>
     Module Common
         Public Const ServerEncoding = "utf-8" 'ISO-8859-1
-        Public Const RegistryHkcuSoftware = "Software\Bertware\BukkitGUI\"
+        Public Const RegistryHkcuSoftware = "Software\PaperGUI\"
         'path for configuration etc. are stored here
         'note:
         'Before usage in a module, the local copy of the string value should be updated in the init routine, as the location might be changed to local
@@ -35,12 +35,12 @@ Namespace Core
 
 
         'GENERAL NEEDED VARIABLES =========================================================================================================
-        Public ReadOnly LocalPath As String = Path.Combine(My.Application.Info.DirectoryPath, "BukkitGUI") _
+        Public ReadOnly LocalPath As String = Path.Combine(My.Application.Info.DirectoryPath, "PaperGUI") _
         'base path. Can be changed to [currentdirectory]/BukkitGUI for local settings
         Public ReadOnly _
             AppdataPath As String =
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                             "Bertware/BukkitGUI") _
+                             "PaperGUI") _
         'base path. Can be changed to [currentdirectory]/BukkitGUI for local settings
 
         Public BasePath As String = AppdataPath
