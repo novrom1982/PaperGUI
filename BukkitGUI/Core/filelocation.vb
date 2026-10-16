@@ -1,4 +1,4 @@
-﻿'============================================='''
+'============================================='''
 '
 ' This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 ' If a copy of the MPL was not distributed with this file,
@@ -44,7 +44,7 @@ Namespace Core
                 If Not FileSystem.FileExists(filelocation_xml) Then
                     Debug.WriteLine("filelocation.xml missing")
                     Dim newlocation As String = REG_VAL_GLOBAL
-                    If FileSystem.DirectoryExists(My.Application.Info.DirectoryPath & "\BukkitGUI\Config\") Then _
+                    If FileSystem.DirectoryExists(My.Application.Info.DirectoryPath & "\PaperGUI\Config\") Then _
                         newlocation = REG_VAL_LOCAL : Debug.WriteLine("Local settings detected")
                     Debug.WriteLine("Set filelocation to " & newlocation)
                     Create_file(filelocation_xml,
